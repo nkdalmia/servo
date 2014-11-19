@@ -41,18 +41,43 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
         return None;
     }
 
-    fn GetItem(self, key: DOMString) -> Option<DOMString> {
-        if key.is_empty() {
+    fn GetItem(self, name: DOMString) -> Option<DOMString> {
+        if name.is_empty() {
             return None;
         }
 
         return None;
     }
 
-    fn NamedGetter(self, key: DOMString, found: &mut bool) -> Option<DOMString> {
-        let item = self.GetItem(key);
+    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
+        let item = self.GetItem(name);
         *found = item.is_some();
         item
+    }
+
+    fn SetItem(self, name: DOMString, value: DOMString) {
+        if name.is_empty() {
+            println!("Name-Value pair: {:s} {:s}", name, value);
+        }
+
+    }
+
+    fn NamedSetter(self, name: DOMString, value: DOMString) {
+        self.SetItem(name, value);
+    }
+
+    fn NamedCreator(self, name: DOMString, value: DOMString) {
+        self.SetItem(name, value);
+    }
+
+    fn RemoveItem(self, name: DOMString) {
+        if name.is_empty() {
+            ;
+        }
+    }
+
+    fn NamedDeleter(self, name: DOMString) {
+        self.RemoveItem(name);
     }
 
     fn Clear(self) {
