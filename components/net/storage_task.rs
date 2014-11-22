@@ -4,12 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::comm::{channel, Receiver, Sender};
+use servo_util::str::DOMString;
 
 use servo_util::task::spawn_named;
 
 pub enum StorageTaskMsg {
     /// Request the data associated with a particular URL
-    Set,
+    Set(DOMString, DOMString),
     Exit
 }
 
@@ -44,8 +45,8 @@ impl StorageManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Set => {
-                self.set()
+              Set(name, value) => {
+                self.set(name, value)
               }
               Exit => {
                 break
@@ -54,8 +55,9 @@ impl StorageManager {
         }
     }
 
-    fn set(&self) {
+    fn set(&self, name: DOMString, value: DOMString) {
         println!("communicated");
+        println!("{:s} {:s}", name, value);
     }
 }
 

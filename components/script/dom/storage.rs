@@ -67,7 +67,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
             let global_ref = global_root.root_ref();
             //let win = global_ref.as_window();
             let storage_task = global_ref.storage_task();
-            storage_task.send(StorageTaskMsg::Set);
+            storage_task.send(StorageTaskMsg::Set(name, value));
         }
 
     }
