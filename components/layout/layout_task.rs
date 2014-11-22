@@ -249,6 +249,7 @@ impl LayoutTask {
            font_cache_task: FontCacheTask,
            time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
+        println!("Inside Layout Task new function");
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
