@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use servo_util::str::DOMString;
+use servo_util::str::DOMString; 
 use servo_net::storage_task::StorageTaskMsg;
 
 #[dom_struct]
@@ -67,7 +67,8 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
             let global_ref = global_root.root_ref();
             //let win = global_ref.as_window();
             let storage_task = global_ref.storage_task();
-            storage_task.send(StorageTaskMsg::Set(name, value));
+	    let url = global_ref.get_url();
+            storage_task.send(StorageTaskMsg::Set(url,name, value));
         }
 
     }

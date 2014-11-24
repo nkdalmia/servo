@@ -7,12 +7,13 @@ use std::comm::{channel, Receiver, Sender};
 use std::cell::RefCell;
 use servo_util::str::DOMString;
 use std::collections::HashMap;
-
+use url::Url;
 use servo_util::task::spawn_named;
 
 pub enum StorageTaskMsg {
     /// Request the data associated with a particular URL
-    Set(DOMString, DOMString),
+    Set(Url,DOMString, DOMString),
+    Get(Url,DOMString),
     Exit
 }
 
@@ -49,8 +50,11 @@ impl StorageManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Set(name, value) => {
-                self.set(name, value)
+              Set(url,name, value) => {
+                self.set(url,name, value)
+              }
+	      Get(url,name) => {
+                self.get(url,name)
               }
               Exit => {
                 break
@@ -59,13 +63,17 @@ impl StorageManager {
         }
     }
 
-    fn set(&self, name: DOMString, value: DOMString) {
-        println!("communicated");
-        println!("{:s} {:s}", name, value);
+    fn set(&self,  url: Url, name: DOMString, value: DOMString) {
+        println!("storage_task SET");
+        println!("{:s} {:s} {:s}", url.to_string(), name, value);
         self.data.borrow_mut().insert(name, value);
         for (key, value) in self.data.borrow().iter() {
             println!("key: {}; value: {}", key, value); 
         }
+    }
+
+    fn get(&self,  url: Url, name: DOMString) {
+	println!("storage_task GET from {:s} | {:s}" ,url.to_string() ,name);
     }
 }
 
