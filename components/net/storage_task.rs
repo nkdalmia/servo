@@ -4,7 +4,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::comm::{channel, Receiver, Sender};
+use std::cell::RefCell;
 use servo_util::str::DOMString;
+use std::collections::HashMap;
 
 use servo_util::task::spawn_named;
 
@@ -30,6 +32,7 @@ pub fn new_storage_task(user_agent: Option<String>) -> StorageTask {
 struct StorageManager {
     from_client: Receiver<StorageTaskMsg>,
     user_agent: Option<String>,
+    data: RefCell<HashMap<DOMString, DOMString>>,
 }
 
 impl StorageManager {
@@ -37,6 +40,7 @@ impl StorageManager {
         StorageManager {
             from_client: from_client,
             user_agent: user_agent,
+            data: RefCell::new(HashMap::new()),
         }
     }
 }
@@ -58,6 +62,10 @@ impl StorageManager {
     fn set(&self, name: DOMString, value: DOMString) {
         println!("communicated");
         println!("{:s} {:s}", name, value);
+        self.data.borrow_mut().insert(name, value);
+        for (key, value) in self.data.borrow().iter() {
+            println!("key: {}; value: {}", key, value); 
+        }
     }
 }
 
