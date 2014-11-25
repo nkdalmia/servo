@@ -1,4 +1,3 @@
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +14,7 @@ pub enum StorageTaskMsg {
     /// Request the storage data associated with a particular URL
     Length(Url),
     Key(Url, index),
-    GetItem(Url, DOMString),
+    GetItem(Sender<DomString>, Url, DOMString),
     SetItem(Url, DOMString, DOMString),
     RemoveItem(Url, DOMString),
     Clear(Url, DOMString),
@@ -23,10 +22,10 @@ pub enum StorageTaskMsg {
 }
 
 /// Handle to a storage task
-pub type StorageTask = Sender<StorageTaskMsg>;
+pub type StorageTask = Sender < StorageTaskMsg > ;
 
 /// Create a StorageTask
-pub fn new_storage_task(user_agent: Option<String>) -> StorageTask {
+pub fn new_storage_task(user_agent: Option < String > ) -> StorageTask {
     println!("Creating Storage Task");
     let (setup_chan, setup_port) = channel();
     spawn_named("StorageManager", proc() {
@@ -42,7 +41,7 @@ struct StorageManager {
 }
 
 impl StorageManager {
-    fn new(from_client: Receiver<StorageTaskMsg>, user_agent: Option<String>) -> StorageManager {
+    fn new(from_client: Receiver < StorageTaskMsg > , user_agent: Option < String > ) -> StorageManager {
         StorageManager {
             from_client: from_client,
             user_agent: user_agent,
@@ -52,14 +51,14 @@ impl StorageManager {
 }
 
 impl StorageManager {
-    fn start(&self) {
+    fn start( & self) {
         loop {
             match self.from_client.recv() {
               SetItem(url,name, value) => {
                   self.SetItem(url, name, value)
               }
-              GetItem(url,name) => {
-                  self.GetItem(url, name)
+              GetItem(sender, url,name) => {
+                  self.GetItem(sender, url, name)
               }
               Exit => {
                 break
@@ -82,10 +81,13 @@ impl StorageManager {
         }
     }
 
-    fn getItem(&self,  url: Url, name: DOMString) {
-        println!("storage_task GET from {:s} | {:s}" ,url.to_string() ,name);
+    fn getItem(&self, sender: Sender < DOMString > , url: Url, name: DOMString) {
+        println!("storage_task GET from {:s} | {:s}", url.to_string(), name);
+        sender.send(name);
     }
+
 }
+
 
 #[test]
 fn test_exit() {

@@ -9,52 +9,63 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 use servo_net::storage_task::StorageTaskMsg;
+use std::comm::{channel, Receiver, Sender};
 
-#[dom_struct]
+#
+[dom_struct]
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,
 }
 
 impl Storage {
-    fn new_inherited(global: &GlobalRef) -> Storage {
+    fn new_inherited(global: & GlobalRef) -> Storage {
         Storage {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Storage> {
+    pub fn new(global: & GlobalRef) -> Temporary < Storage > {
         reflect_dom_object(box Storage::new_inherited(global), global, StorageBinding::Wrap)
     }
 }
 
 impl<'a> StorageMethods for JSRef<'a, Storage> {
-    fn Length(self) -> u32 {
-        0
-    }
-
-    fn Key(self, index: u32) -> Option<DOMString> {
-
-        //Return null for out of range index
-        if index >= self.Length() {
-            return None;
-        }
-
+	fn Length(self) -> u32 {
+		0
+	}
+	fn Key(self, index: u32) -> Option<DOMString> {
+	//Return null for out of range index
+	if index >= self.Length() {
+		return None;
+	}
+		return None;
+	}
+    fn GetItem(self, name: DOMString) -> Option <DOMString> {
+        //if name.is_empty() {
+        //     return None;
+        //}
+	/* Create a new Channel */
+        let (getItemSender, getItemReciever): (Sender < DOMString > , Receiver < DOMString > ) = channel();
+        println!("Sending {:s}", name);
+	/*Clone the sender port */
+        let sender = getItemSender.clone();
+	/*Retrieve storage task instance */
+        let global_root = self.global.root(); //.resoure_task();
+        let global_ref = global_root.root_ref();
+        let storage_task = global_ref.storage_task();
+        let url = global_ref.get_url();
+	/* Send Get Request on Storage Task Channel */
+        storage_task.send(StorageTaskMsg::Get(sender, url, name));
+	/* Wait for Reply on Self Channel */
+        let ans = getItemReciever.recv();
+        println!("Received {:s}", ans);
         return None;
     }
 
-    fn GetItem(self, name: DOMString) -> Option<DOMString> {
-        if name.is_empty() {
-            return None;
-        }
-
-        return None;
-    }
-
-    fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
-        let item = self.GetItem(name);
-        *found = item.is_some();
+    fn NamedGetter(self, name: DOMString, found: & mut bool) -> Option < DOMString > {
+        let item = self.GetItem(name); * found = item.is_some();
         item
     }
 
@@ -67,8 +78,8 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
             let global_ref = global_root.root_ref();
             //let win = global_ref.as_window();
             let storage_task = global_ref.storage_task();
-	    let url = global_ref.get_url();
-            storage_task.send(StorageTaskMsg::Set(url,name, value));
+            let url = global_ref.get_url();
+            storage_task.send(StorageTaskMsg::Set(url, name, value));
         }
 
     }
@@ -82,8 +93,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     }
 
     fn RemoveItem(self, name: DOMString) {
-        if name.is_empty() {
-            ;
+        if name.is_empty() {;
         }
     }
 
@@ -91,12 +101,11 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
         self.RemoveItem(name);
     }
 
-    fn Clear(self) {
-    }
+    fn Clear(self) {}
 }
 
 impl Reflectable for Storage {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
+	fn reflector<'a>(&'a self) -> &'a Reflector {
+		&self.reflector_
+	}
 }
