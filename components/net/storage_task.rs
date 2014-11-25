@@ -3,17 +3,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::comm::{channel, Receiver, Sender};
 use std::cell::RefCell;
-use servo_util::str::DOMString;
+use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
 use url::Url;
+
+use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
 pub enum StorageTaskMsg {
-    /// Request the data associated with a particular URL
-    Set(Url,DOMString, DOMString),
-    Get(Url,DOMString),
+    /// Request the storage data associated with a particular URL
+    Length(Url),
+    Key(Url, index),
+    GetItem(Url, DOMString),
+    SetItem(Url, DOMString, DOMString),
+    RemoveItem(Url, DOMString),
+    Clear(Url, DOMString),
     Exit
 }
 
@@ -33,7 +38,7 @@ pub fn new_storage_task(user_agent: Option<String>) -> StorageTask {
 struct StorageManager {
     from_client: Receiver<StorageTaskMsg>,
     user_agent: Option<String>,
-    data: RefCell<HashMap<DOMString, DOMString>>,
+    data: RefCell<HashMap<DOMString, RefCell<HashMap<DOMString, DOMString>>>>,
 }
 
 impl StorageManager {
@@ -50,11 +55,11 @@ impl StorageManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Set(url,name, value) => {
-                self.set(url,name, value)
+              SetItem(url,name, value) => {
+                  self.SetItem(url, name, value)
               }
-	      Get(url,name) => {
-                self.get(url,name)
+              GetItem(url,name) => {
+                  self.GetItem(url, name)
               }
               Exit => {
                 break
@@ -63,17 +68,22 @@ impl StorageManager {
         }
     }
 
-    fn set(&self,  url: Url, name: DOMString, value: DOMString) {
+    fn getOriginMap(origin: Url) -> RefCell<HashMap<DOMString, DOMString>> {
+
+
+    }
+
+    fn setItem(&self,  url: Url, name: DOMString, value: DOMString) {
         println!("storage_task SET");
         println!("{:s} {:s} {:s}", url.to_string(), name, value);
         self.data.borrow_mut().insert(name, value);
         for (key, value) in self.data.borrow().iter() {
-            println!("key: {}; value: {}", key, value); 
+            println!("key: {}; value: {}", key, value);
         }
     }
 
-    fn get(&self,  url: Url, name: DOMString) {
-	println!("storage_task GET from {:s} | {:s}" ,url.to_string() ,name);
+    fn getItem(&self,  url: Url, name: DOMString) {
+        println!("storage_task GET from {:s} | {:s}" ,url.to_string() ,name);
     }
 }
 
