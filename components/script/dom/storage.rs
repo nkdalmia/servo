@@ -19,93 +19,90 @@ pub struct Storage {
 }
 
 impl Storage {
-    fn new_inherited(global: & GlobalRef) -> Storage {
+    fn new_inherited(global: &GlobalRef) -> Storage {
         Storage {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
         }
     }
 
-    pub fn new(global: & GlobalRef) -> Temporary < Storage > {
+    pub fn new(global: &GlobalRef) -> Temporary<Storage> {
         reflect_dom_object(box Storage::new_inherited(global), global, StorageBinding::Wrap)
     }
 }
 
 impl<'a> StorageMethods for JSRef<'a, Storage> {
-	fn Length(self) -> u32 {
-		0
-	}
-	fn Key(self, index: u32) -> Option<DOMString> {
-	//Return null for out of range index
-	if index >= self.Length() {
-		return None;
-	}
-		return None;
-	}
-    fn GetItem(self, name: DOMString) -> Option <DOMString> {
-        //if name.is_empty() {
-        //     return None;
-        //}
-	/* Create a new Channel */
-        let (getItemSender, getItemReciever): (Sender < DOMString > , Receiver < DOMString > ) = channel();
-        println!("Sending {:s}", name);
-	/*Clone the sender port */
-        let sender = getItemSender.clone();
-	/*Retrieve storage task instance */
-        let global_root = self.global.root(); //.resoure_task();
-        let global_ref = global_root.root_ref();
-        let storage_task = global_ref.storage_task();
-        let url = global_ref.get_url();
-	/* Send Get Request on Storage Task Channel */
-        storage_task.send(StorageTaskMsg::Get(sender, url, name));
-	/* Wait for Reply on Self Channel */
-        let ans = getItemReciever.recv();
-        println!("Received {:s}", ans);
-        return None;
+  fn Length(self) -> u32 {
+    0
+  }
+
+  fn Key(self, index: u32) -> Option<DOMString> {
+    //Return null for out of range index
+    if index>= self.Length() {
+      return None;
     }
+    return None;
+  }
 
-    fn NamedGetter(self, name: DOMString, found: & mut bool) -> Option < DOMString > {
-        let item = self.GetItem(name); * found = item.is_some();
-        item
+  fn GetItem(self, name: DOMString) -> Option<DOMString> {
+    /* Create a new Channel */
+    let (getItemSender, getItemReciever): (Sender<Option<DOMString>>, Receiver<Option<DOMString>>) = channel();
+    println!("Sending {:s}", name);
+    /*Clone the sender port */
+    let sender = getItemSender.clone();
+    /*Retrieve storage task instance */
+    let global_root = self.global.root(); //.resoure_task();
+    let global_ref = global_root.root_ref();
+    let storage_task = global_ref.storage_task();
+    let url = global_ref.get_url();
+    /* Send Get Request on Storage Task Channel */
+    storage_task.send(StorageTaskMsg::GetItem(sender, url, name));
+    /* Wait for Reply on Self Channel */
+    let ans = getItemReciever.recv();
+    println!("Received {}", ans);
+    return ans;
+  }
+
+  fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
+    let item = self.GetItem(name); * found = item.is_some();
+    item
+  }
+
+  fn SetItem(self, name: DOMString, value: DOMString) {
+    if name.is_empty() {
+      println!("Name-Value pair: {:s} {:s}", name, value);
+    } else {
+      println!("Name-Value pair: {:s} {:s}", name, value);
+      let global_root = self.global.root(); //.resoure_task();
+      let global_ref = global_root.root_ref();
+      let storage_task = global_ref.storage_task();
+      let url = global_ref.get_url();
+      storage_task.send(StorageTaskMsg::SetItem(url, name, value));
     }
+  }
 
-    fn SetItem(self, name: DOMString, value: DOMString) {
-        if name.is_empty() {
-            println!("Name-Value pair: {:s} {:s}", name, value);
-        } else {
-            println!("Name-Value pair: {:s} {:s}", name, value);
-            let global_root = self.global.root(); //.resoure_task();
-            let global_ref = global_root.root_ref();
-            //let win = global_ref.as_window();
-            let storage_task = global_ref.storage_task();
-            let url = global_ref.get_url();
-            storage_task.send(StorageTaskMsg::Set(url, name, value));
-        }
+  fn NamedSetter(self, name: DOMString, value: DOMString) {
+    self.SetItem(name, value);
+  }
 
+  fn NamedCreator(self, name: DOMString, value: DOMString) {
+    self.SetItem(name, value);
+  }
+
+  fn RemoveItem(self, name: DOMString) {
+    if name.is_empty() {;
     }
+  }
 
-    fn NamedSetter(self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
+  fn NamedDeleter(self, name: DOMString) {
+    self.RemoveItem(name);
+  }
 
-    fn NamedCreator(self, name: DOMString, value: DOMString) {
-        self.SetItem(name, value);
-    }
-
-    fn RemoveItem(self, name: DOMString) {
-        if name.is_empty() {;
-        }
-    }
-
-    fn NamedDeleter(self, name: DOMString) {
-        self.RemoveItem(name);
-    }
-
-    fn Clear(self) {}
+  fn Clear(self) {}
 }
 
 impl Reflectable for Storage {
-	fn reflector<'a>(&'a self) -> &'a Reflector {
-		&self.reflector_
-	}
+  fn reflector<'a>(&'a self) -> &'a Reflector {
+    &self.reflector_
+  }
 }

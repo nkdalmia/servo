@@ -166,7 +166,6 @@ pub type ResourceTask = Sender<ControlMsg>;
 
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
-    println!("creating resource task");
     let (setup_chan, setup_port) = channel();
     spawn_named("ResourceManager", proc() {
         ResourceManager::new(setup_port, user_agent).start();

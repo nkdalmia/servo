@@ -119,7 +119,6 @@ pub struct LayoutChan(pub Sender<Msg>);
 
 impl LayoutChan {
     pub fn new() -> (Receiver<Msg>, LayoutChan) {
-        println!("Inside Layout Channel new function");
         let (chan, port) = channel();
         (port, LayoutChan(chan))
     }
@@ -135,7 +134,6 @@ pub trait ScriptLayoutChan {
 
 impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
     fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> OpaqueScriptLayoutChannel {
-        println!("Inside Layout Channel: Script Layout Chan new function");
         let inner = (box sender as Box<Any+Send>, box receiver as Box<Any+Send>);
         OpaqueScriptLayoutChannel(inner)
     }

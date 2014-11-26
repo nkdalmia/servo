@@ -318,7 +318,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  devtools_chan: Option<DevtoolsControlChan>,
                  storage_task: StorageTask)
                  -> ConstellationChan {
-        println!("Constellation start");
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
         spawn_named("Constellation", proc() {
