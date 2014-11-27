@@ -5,19 +5,18 @@
 use std::cell::RefCell;
 use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
-use url::Url;
 
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
 pub enum StorageTaskMsg {
-    // Request the storage data associated with a particular URL
-    //Length(Url),
-    //Key(Url, u32),
-    GetItem(Sender<Option<DOMString>>, Url, DOMString),
-    SetItem(Url, DOMString, DOMString),
-    //RemoveItem(Url, DOMString),
-    //Clear(Url, DOMString),
+    // Request the storage data associated with a particular origin
+    //Length(String),
+    //Key(String, u32),
+    GetItem(Sender<Option<DOMString>>, String, DOMString),
+    SetItem(String, DOMString, DOMString),
+    //RemoveItem(String, DOMString),
+    //Clear(String, DOMString),
     Exit
 }
 
@@ -51,11 +50,11 @@ impl StorageManager {
     fn start(&self) {
         loop {
             match self.port.recv() {
-              SetItem(url, name, value) => {
-                  self.set_item(url, name, value)
+              SetItem(origin, name, value) => {
+                  self.set_item(origin, name, value)
               }
-              GetItem(sender, url, name) => {
-                  self.get_item(sender, url, name)
+              GetItem(sender, origin, name) => {
+                  self.get_item(sender, origin, name)
               }
               Exit => {
                 break
@@ -64,12 +63,12 @@ impl StorageManager {
         }
     }
 
-    fn set_item(&self,  url: Url, name: DOMString, value: DOMString) {
-        if !self.data.borrow().contains_key(&(url.to_string())) {
-            self.data.borrow_mut().insert(url.to_string(), RefCell::new(HashMap::new()));
+    fn set_item(&self,  origin: String, name: DOMString, value: DOMString) {
+        if !self.data.borrow().contains_key(&origin) {
+            self.data.borrow_mut().insert(origin.clone(), RefCell::new(HashMap::new()));
         }
 
-        match self.data.borrow().get(&(url.to_string())) {
+        match self.data.borrow().get(&origin) {
             Some(origin_data) => {
                 origin_data.borrow_mut().insert(name, value);
             }
@@ -79,17 +78,16 @@ impl StorageManager {
         self.print_data();
     }
 
-    fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, name: DOMString) {
-        println!("storage_task GET from {:s} | {:s}", url.to_string(), name);
-        match self.data.borrow().get(&(url.to_string())) {
+    fn get_item(&self, sender: Sender<Option<DOMString>>, origin: String, name: DOMString) {
+        println!("storage_task GET from {:s} | {:s}", origin, name);
+        match self.data.borrow().get(&origin) {
             Some(origin_data) => {
                 match origin_data.borrow().get(&name) {
                     Some(value) => sender.send(Some(value.to_string())),
                     None => sender.send(None),
                 }
             }
-            _ => {
-            }
+            None => sender.send(None),
         }
     }
 
