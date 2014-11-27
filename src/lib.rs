@@ -115,7 +115,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 ImageCacheTask::new(resource_task.clone(), shared_task_pool)
             };
             let font_cache_task = FontCacheTask::new(resource_task.clone());
-            let storage_task = new_storage_task(opts.user_agent.clone());
+            let storage_task = new_storage_task();
             let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                                      script::script_task::ScriptTask>::start(
                                                           compositor_proxy_for_constellation,

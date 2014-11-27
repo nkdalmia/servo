@@ -90,7 +90,6 @@ pub struct Page {
     /// A handle for communicating messages to the storage task.
     pub storage_task: StorageTask,
 
-
     /// A handle for communicating messages to the constellation task.
     pub constellation_chan: ConstellationChan,
 

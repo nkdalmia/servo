@@ -157,8 +157,6 @@ pub struct ScriptTask {
     image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
     resource_task: ResourceTask,
-    /// A handle to the storage task.
-    storage_task: StorageTask,
 
     /// The port on which the script task receives messages (load URL, exit, etc.)
     port: Receiver<ScriptMsg>,
@@ -354,7 +352,6 @@ impl ScriptTask {
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
-            storage_task: storage_task,
 
             port: port,
             chan: chan,

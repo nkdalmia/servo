@@ -25,25 +25,23 @@ pub enum StorageTaskMsg {
 pub type StorageTask = Sender<StorageTaskMsg>;
 
 // Create a StorageTask
-pub fn new_storage_task(user_agent: Option<String>) -> StorageTask {
-    let (setup_chan, setup_port) = channel();
+pub fn new_storage_task() -> StorageTask {
+    let (chan, port) = channel();
     spawn_named("StorageManager", proc() {
-        StorageManager::new(setup_port, user_agent).start();
+        StorageManager::new(port).start();
     });
-    setup_chan
+    chan
 }
 
 struct StorageManager {
-    from_client: Receiver<StorageTaskMsg>,
-    user_agent: Option<String>,
+    port: Receiver<StorageTaskMsg>,
     data: RefCell<HashMap<String, RefCell<HashMap<DOMString, DOMString>>>>,
 }
 
 impl StorageManager {
-    fn new(from_client: Receiver<StorageTaskMsg> , user_agent: Option<String>) -> StorageManager {
+    fn new(port: Receiver<StorageTaskMsg>) -> StorageManager {
         StorageManager {
-            from_client: from_client,
-            user_agent: user_agent,
+            port: port,
             data: RefCell::new(HashMap::new()),
         }
     }
@@ -52,7 +50,7 @@ impl StorageManager {
 impl StorageManager {
     fn start(&self) {
         loop {
-            match self.from_client.recv() {
+            match self.port.recv() {
               SetItem(url, name, value) => {
                   self.set_item(url, name, value)
               }
