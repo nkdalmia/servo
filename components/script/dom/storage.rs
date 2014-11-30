@@ -7,13 +7,13 @@ use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::error::Fallible;
 use servo_util::str::DOMString;
 use servo_net::storage_task::StorageTaskMsg;
 use std::comm::{channel, Receiver, Sender};
 use url::Url;
 
-#
-[dom_struct]
+#[dom_struct]
 pub struct Storage {
     reflector_: Reflector,
     global: GlobalField,
@@ -29,6 +29,10 @@ impl Storage {
 
     pub fn new(global: &GlobalRef) -> Temporary<Storage> {
         reflect_dom_object(box Storage::new_inherited(global), global, StorageBinding::Wrap)
+    }
+
+    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Storage>> {
+        Ok(Storage::new(global))
     }
 
     fn get_origin_as_string(&self, url: Url) -> String {
@@ -48,7 +52,21 @@ impl Storage {
 
 impl<'a> StorageMethods for JSRef<'a, Storage> {
   fn Length(self) -> u32 {
-    0
+    /* Create a new Channel */
+    let (sender, receiver): (Sender<u32>, Receiver<u32>) = channel();
+
+    //Move to another function?
+    /*Retrieve storage task instance */
+    let global_root = self.global.root();
+    let global_ref = global_root.root_ref();
+    let url = global_ref.get_url();
+    let origin = self.get_origin_as_string(url.clone());
+    let storage_task = global_ref.storage_task();
+
+    /* Send Get Request on Storage Task Channel */
+    storage_task.send(StorageTaskMsg::Length(sender.clone(), origin.clone()));
+    /* Wait for Reply on Self Channel */
+    receiver.recv()
   }
 
   fn Key(self, index: u32) -> Option<DOMString> {
@@ -79,6 +97,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
   }
 
   fn NamedGetter(self, name: DOMString, found: &mut bool) -> Option<DOMString> {
+    println!("in named getter");
     let item = self.GetItem(name);
     *found = item.is_some();
     item
@@ -98,15 +117,25 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
   }
 
   fn NamedSetter(self, name: DOMString, value: DOMString) {
+    println!("in named setter");
     self.SetItem(name, value);
   }
 
   fn NamedCreator(self, name: DOMString, value: DOMString) {
+    println!("in named creator");
     self.SetItem(name, value);
   }
 
   fn RemoveItem(self, name: DOMString) {
-    if name.is_empty() {;
+    //remove value only if the given name/value pair does not exist
+    let item = self.GetItem(name.clone());
+    if item.is_some() {
+      let global_root = self.global.root();
+      let global_ref = global_root.root_ref();
+      let storage_task = global_ref.storage_task();
+      let url = global_ref.get_url();
+      let origin = self.get_origin_as_string(url.clone());
+      storage_task.send(StorageTaskMsg::RemoveItem(origin.clone(), name));
     }
   }
 
@@ -114,7 +143,14 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     self.RemoveItem(name);
   }
 
-  fn Clear(self) {}
+  fn Clear(self) {
+    let global_root = self.global.root();
+    let global_ref = global_root.root_ref();
+    let storage_task = global_ref.storage_task();
+    let url = global_ref.get_url();
+    let origin = self.get_origin_as_string(url.clone());
+    storage_task.send(StorageTaskMsg::Clear(origin.clone()));
+  }
 }
 
 impl Reflectable for Storage {

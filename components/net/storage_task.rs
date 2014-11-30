@@ -11,12 +11,12 @@ use servo_util::task::spawn_named;
 
 pub enum StorageTaskMsg {
     // Request the storage data associated with a particular origin
-    //Length(String),
+    Length(Sender<u32>, String),
     //Key(String, u32),
     GetItem(Sender<Option<DOMString>>, String, DOMString),
     SetItem(String, DOMString, DOMString),
-    //RemoveItem(String, DOMString),
-    //Clear(String, DOMString),
+    RemoveItem(String, DOMString),
+    Clear(String),
     Exit
 }
 
@@ -50,16 +50,32 @@ impl StorageManager {
     fn start(&self) {
         loop {
             match self.port.recv() {
+              Length(sender, origin) => {
+                  self.length(sender, origin)
+              }
               SetItem(origin, name, value) => {
                   self.set_item(origin, name, value)
               }
               GetItem(sender, origin, name) => {
                   self.get_item(sender, origin, name)
               }
+              RemoveItem(origin, name) => {
+                  self.remove_item(origin, name)
+              }
+              Clear(origin) => {
+                  self.clear(origin)
+              }
               Exit => {
                 break
               }
             }
+        }
+    }
+
+    fn length(&self, sender: Sender<u32>, origin: String) {
+        match self.data.borrow().get(&origin) {
+            Some(origin_data) => sender.send(origin_data.borrow().len() as u32),
+            None => sender.send(0),
         }
     }
 
@@ -88,6 +104,20 @@ impl StorageManager {
                 }
             }
             None => sender.send(None),
+        }
+    }
+
+    fn remove_item(&self,  origin: String, name: DOMString) {
+        match self.data.borrow().get(&origin) {
+            Some(origin_data) => {origin_data.borrow_mut().remove(&name);}
+            None => {},
+        }
+    }
+
+    fn clear(&self, origin: String) {
+        match self.data.borrow().get(&origin) {
+            Some(origin_data) => origin_data.borrow_mut().clear(),
+            None => {},
         }
     }
 
