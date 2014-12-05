@@ -31,7 +31,9 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::smallvec::SmallVec1;
+use servo_util::str::DOMString;
 use std::any::Any;
+use url::Url;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -66,7 +68,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
     ViewportMsg(PipelineId, Rect<f32>),
-    StorageEventMsg(PipelineId),
+    StorageEventMsg(Url, PipelineId, PipelineId, Option<DOMString>, Option<DOMString>, Option<DOMString>),
 }
 
 /// Events from the compositor that the script task needs to know about

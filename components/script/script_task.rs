@@ -59,6 +59,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
+use servo_util::str::DOMString;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 
@@ -511,8 +512,8 @@ impl ScriptTask {
                         needs_reflow.insert(id);
                     }
                 }
-                FromConstellation(StorageEventMsg(id)) => {
-                    self.handle_storage_event_msg(id);
+                FromConstellation(StorageEventMsg(url, source_id, id, key, old_value, new_value)) => {
+                    self.handle_storage_event_msg(url, source_id, id, key, old_value, new_value);
                 }
                 _ => {
                     sequential.push(event);
@@ -987,15 +988,15 @@ impl ScriptTask {
         window.flush_layout();
     }
 
-    fn handle_storage_event_msg(&self, pipeline_id: PipelineId) {
-        println!("in handle storage event");
+    fn handle_storage_event_msg(&self, url: Url, source_pipeline_id: PipelineId, pipeline_id: PipelineId,
+                               key: Option<DOMString>, old_value: Option<DOMString>, new_value: Option<DOMString> ) {
+        println!("in handle storage event {}", source_pipeline_id);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
-        let event = StorageEvent::new(global::Window(*window), "storage".to_string(), true, true, Some(Some("".to_string())),
-                                           Some(Some("".to_string())),Some(Some("".to_string())),
-                                          None).root();
+        let event = StorageEvent::new(global::Window(*window), "storage".to_string(), true, true,
+                                      Some(key), Some(old_value), Some(new_value), Some(url.serialize())).root();
 
         let event = EventCast::from_ref(*event);
         let _ = target.DispatchEvent(event);

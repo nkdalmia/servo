@@ -12,7 +12,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, StorageEventTypeId};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::storage::Storage;
 
 use servo_util::str::DOMString;
@@ -65,18 +64,6 @@ impl StorageEvent {
         let ev = StorageEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
                                    init.key.clone(), init.oldValue.clone(), init.newValue.clone(), init.url.clone());
         Ok(ev)
-    }
-}
-
-impl StorageEvent {
-    pub fn dispatch_jsval(target: JSRef<EventTarget>,
-                          scope: GlobalRef) {
-        let storageevent = StorageEvent::new(
-            scope, "storage".to_string(), false, false,
-            Some(Some("".to_string())), Some(Some("".to_string())),
-            Some(Some("".to_string())), Some("".to_string())).root();
-        let event: JSRef<Event> = EventCast::from_ref(*storageevent);
-        target.dispatch_event_with_target(None, event).unwrap();
     }
 }
 

@@ -33,6 +33,7 @@ use servo_net::storage_task::StorageTask;
 use servo_net::storage_task;
 use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
+use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 use servo_util::time::TimeProfilerChan;
 use std::cell::{Cell, RefCell};
@@ -466,9 +467,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got key event message");
                 self.handle_key_msg(key, state, modifiers);
             }
-            StorageEventMsg => {
+            StorageEventMsg(url, source_pipeline_id, key, old_value, new_value) => {
                 println!("constellation got strage event message");
-                self.handle_storage_event_msg();
+                self.handle_storage_event_msg(url, source_pipeline_id, key, old_value, new_value);
             }
         }
         true
@@ -792,15 +793,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         });
     }
 
-    fn handle_storage_event_msg(&self) {
+    fn handle_storage_event_msg(&self, url: Url, source_pipeline_id: PipelineId,
+                                key: Option<DOMString>, old_value: Option<DOMString>, new_value: Option<DOMString>) {
         println!("handling storage event in constellation");
         for (_id, ref pipeline) in self.pipelines.iter() {
-            //let same_origin = (pipeline.load_data.url.host() == url.host() && source_url.port() == url.port() && source_url.scheme == url.scheme)
-            let same_origin = true;
-            if same_origin {
-                println!("for this pipeline:{} {}", _id, pipeline.load_data.url.scheme);
+            let same_origin = pipeline.load_data.url.host() == url.host()
+                               && pipeline.load_data.url.port() == url.port()
+                               && pipeline.load_data.url.scheme == url.scheme;
+            if same_origin && pipeline.id != source_pipeline_id {
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
-                chan.send(script_traits::StorageEventMsg(pipeline.id));
+                chan.send(script_traits::StorageEventMsg(url.clone(), source_pipeline_id, pipeline.id, key.clone(),
+                old_value.clone(), new_value.clone()));
+            } else {
+                println!("not sending event as same window");
             }
         }
     }

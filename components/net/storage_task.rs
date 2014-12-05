@@ -22,10 +22,10 @@ pub enum StorageTaskMsg {
 
     /// sets the value of the given key in the associated storage data
     /// TODO throw QuotaExceededError in case of error
-    SetItem(Sender<bool>, Url, DOMString, DOMString),
+    SetItem(Sender<(bool, Option<DOMString>)>, Url, DOMString, DOMString),
 
     /// removes the key/value pair for the given key in the associated storage data
-    RemoveItem(Sender<bool>, Url, DOMString),
+    RemoveItem(Sender<(bool, Option<DOMString>)>, Url, DOMString),
 
     /// clears the associated storage data by removing all the key/value pairs
     Clear(Sender<bool>, Url),
@@ -107,22 +107,31 @@ impl StorageManager {
                     .map(|key| key.clone()));
     }
 
-    fn set_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString, value: DOMString) {
+    fn set_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         if !self.data.contains_key(&origin) {
             self.data.insert(origin.clone(), TreeMap::new());
         }
 
-        let updated = self.data.get_mut(&origin).map(|entry| {
-            if entry.get(&origin).map_or(true, |item| item.as_slice() != value.as_slice()) {
-                entry.insert(name.clone(), value.clone());
-                true
+        let old_value = self.get_item_helper(origin.clone(), name.clone());
+        if old_value.is_none()  {
+            self.data.get_mut(&origin).unwrap().insert(name.clone(), value.clone());
+            sender.send((true, None));
+        } else {
+            let item = old_value.unwrap();
+            if item.as_slice() != value.as_slice() {
+                self.data.get_mut(&origin).unwrap().insert(name.clone(), value.clone());
+                sender.send((true, Some(item)));
             } else {
-                false
+                sender.send((false, None));
             }
-        }).unwrap();
+        }
+    }
 
-        sender.send(updated);
+    fn get_item_helper(&self, origin: String, name: DOMString) -> Option<DOMString> {
+        self.data.get(&origin)
+            .and_then(|entry| entry.get(&name))
+            .map(|value| value.to_string())
     }
 
     fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, name: DOMString) {
@@ -132,10 +141,13 @@ impl StorageManager {
                     .map(|value| value.to_string()));
     }
 
-    fn remove_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString) {
+    fn remove_item(&mut self, sender: Sender<(bool, Option<DOMString>)>, url: Url, name: DOMString) {
         let origin = self.get_origin_as_string(url);
         sender.send(self.data.get_mut(&origin)
-                    .map_or(false, |entry| entry.remove(&name).is_some()));
+                    .map_or((false, None), |entry| {
+                        let old_value = entry.remove(&name);
+                        (old_value.is_some(), old_value)
+                    }));
     }
 
     fn clear(&mut self, sender: Sender<bool>, url: Url) {

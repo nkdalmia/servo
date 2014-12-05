@@ -12,6 +12,7 @@ use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::{Method, Get};
 use layers::geometry::DevicePixel;
 use servo_util::geometry::{PagePx, ViewportPx};
+use servo_util::str::DOMString;
 use std::comm::{channel, Sender, Receiver};
 use url::Url;
 
@@ -205,7 +206,7 @@ pub enum Msg {
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
-    StorageEventMsg,
+    StorageEventMsg(Url, PipelineId, Option<DOMString>, Option<DOMString>, Option<DOMString>),
 }
 
 /// Similar to net::resource_task::LoadData

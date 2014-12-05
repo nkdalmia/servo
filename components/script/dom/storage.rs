@@ -49,6 +49,15 @@ impl Storage {
         global_ref.as_window().storage_task()
     }
 
+    fn send_constellation_msg(&self, name: Option<DOMString>, value: Option<DOMString>, old_value: Option<DOMString>) {
+        let global_root = self.global.root();
+        let global_ref = global_root.root_ref();
+        let window = global_ref.as_window();
+        let page = window.page();
+        let ConstellationChan(ref chan) = page.constellation_chan;
+        chan.send(StorageEventMsg(self.get_url(), page.id, name, value, old_value));
+    }
+
 }
 
 impl<'a> StorageMethods for JSRef<'a, Storage> {
@@ -82,16 +91,10 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn SetItem(self, name: DOMString, value: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name, value));
-        if receiver.recv() {
-            println!("sending storage event");
-            let global_root = self.global.root();
-            let global_ref = global_root.root_ref();
-            let window = global_ref.as_window();
-            let page = window.page();
-            let ConstellationChan(ref chan) = page.constellation_chan;
-            chan.send(StorageEventMsg);
-            //TODO send notification
+        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name.clone(), value.clone()));
+        let (updated, old_value) = receiver.recv();
+        if updated {
+            self.send_constellation_msg(Some(name), Some(value), old_value);
         }
     }
 
@@ -106,9 +109,10 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn RemoveItem(self, name: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), name));
-        if receiver.recv() {
-            //TODO send notification
+        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), name.clone()));
+        let (updated, old_value) = receiver.recv();
+        if updated {
+            self.send_constellation_msg(Some(name), None, old_value);
         }
     }
 
@@ -121,7 +125,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
 
         self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url()));
         if receiver.recv() {
-            //TODO send notification
+            self.send_constellation_msg(None, None, None);
         }
     }
 }
