@@ -468,7 +468,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.handle_key_msg(key, state, modifiers);
             }
             StorageEventMsg(url, source_pipeline_id, key, old_value, new_value) => {
-                println!("constellation got strage event message");
+                debug!("constellation got strage event message");
                 self.handle_storage_event_msg(url, source_pipeline_id, key, old_value, new_value);
             }
         }
@@ -795,17 +795,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_storage_event_msg(&self, url: Url, source_pipeline_id: PipelineId,
                                 key: Option<DOMString>, old_value: Option<DOMString>, new_value: Option<DOMString>) {
-        println!("handling storage event in constellation");
         for (_id, ref pipeline) in self.pipelines.iter() {
             let same_origin = pipeline.load_data.url.host() == url.host()
                                && pipeline.load_data.url.port() == url.port()
                                && pipeline.load_data.url.scheme == url.scheme;
+            // Only windows which share the same storage area (in our case, based on origin)
+            // and excluding the window object which caused the event should be notified
             if same_origin && pipeline.id != source_pipeline_id {
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
                 chan.send(script_traits::StorageEventMsg(url.clone(), source_pipeline_id, pipeline.id, key.clone(),
                 old_value.clone(), new_value.clone()));
-            } else {
-                println!("not sending event as same window");
             }
         }
     }

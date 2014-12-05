@@ -990,7 +990,6 @@ impl ScriptTask {
 
     fn handle_storage_event_msg(&self, url: Url, source_pipeline_id: PipelineId, pipeline_id: PipelineId,
                                key: Option<DOMString>, old_value: Option<DOMString>, new_value: Option<DOMString> ) {
-        println!("in handle storage event {}", source_pipeline_id);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
@@ -1079,7 +1078,7 @@ impl ScriptTask {
     }
 
     fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
-        println!("ClickEvent: clicked at {}", point);
+        debug!("ClickEvent: clicked at {}", point);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.hit_test(&point) {
             Some(node_address) => {
