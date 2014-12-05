@@ -294,6 +294,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     event_handler!(click, GetOnclick, SetOnclick)
     event_handler!(load, GetOnload, SetOnload)
     event_handler!(unload, GetOnunload, SetOnunload)
+    event_handler!(storage, GetOnstorage, SetOnstorage)
     error_event_handler!(error, GetOnerror, SetOnerror)
 
     fn Screen(self) -> Temporary<Screen> {

@@ -9,6 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use servo_util::str::DOMString;
+use servo_msg::constellation_msg::{ConstellationChan, StorageEventMsg};
 use servo_net::storage_task::StorageTask;
 use servo_net::storage_task::StorageTaskMsg;
 use std::comm::channel;
@@ -83,6 +84,13 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
 
         self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name, value));
         if receiver.recv() {
+            println!("sending storage event");
+            let global_root = self.global.root();
+            let global_ref = global_root.root_ref();
+            let window = global_ref.as_window();
+            let page = window.page();
+            let ConstellationChan(ref chan) = page.constellation_chan;
+            chan.send(StorageEventMsg);
             //TODO send notification
         }
     }

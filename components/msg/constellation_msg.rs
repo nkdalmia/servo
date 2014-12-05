@@ -205,6 +205,7 @@ pub enum Msg {
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
+    StorageEventMsg,
 }
 
 /// Similar to net::resource_task::LoadData

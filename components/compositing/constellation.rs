@@ -24,6 +24,7 @@ use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, N
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
 use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
+use servo_msg::constellation_msg::StorageEventMsg;
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -465,6 +466,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got key event message");
                 self.handle_key_msg(key, state, modifiers);
             }
+            StorageEventMsg => {
+                println!("constellation got strage event message");
+                self.handle_storage_event_msg();
+            }
         }
         true
     }
@@ -785,6 +790,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
             chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
         });
+    }
+
+    fn handle_storage_event_msg(&self) {
+        println!("handling storage event in constellation");
+        for (_id, ref pipeline) in self.pipelines.iter() {
+            //let same_origin = (pipeline.load_data.url.host() == url.host() && source_url.port() == url.port() && source_url.scheme == url.scheme)
+            let same_origin = true;
+            if same_origin {
+                println!("for this pipeline:{} {}", _id, pipeline.load_data.url.scheme);
+                let ScriptControlChan(ref chan) = pipeline.script_chan;
+                chan.send(script_traits::StorageEventMsg(pipeline.id));
+            }
+        }
     }
 
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {

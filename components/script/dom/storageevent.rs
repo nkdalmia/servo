@@ -49,6 +49,7 @@ impl StorageEvent {
                key: Option<Option<DOMString>>, old_value: Option<Option<DOMString>>,
                new_value: Option<Option<DOMString>>, url: Option<DOMString>)
                -> Temporary<StorageEvent> {
+                   println!("storage event initialised");
         let ev = reflect_dom_object(box StorageEvent::new_inherited(key, old_value, new_value, url),
                                     global,
                                     StorageEventBinding::Wrap).root();

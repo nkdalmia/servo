@@ -28,6 +28,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
+use dom::storageevent::StorageEvent;
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
@@ -43,7 +44,7 @@ use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetD
 use devtools_traits::{GetChildren, GetLayout};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
-use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
+use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg, StorageEventMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
@@ -510,6 +511,9 @@ impl ScriptTask {
                         needs_reflow.insert(id);
                     }
                 }
+                FromConstellation(StorageEventMsg(id)) => {
+                    self.handle_storage_event_msg(id);
+                }
                 _ => {
                     sequential.push(event);
                 }
@@ -546,6 +550,7 @@ impl ScriptTask {
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
                 FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
                 FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
+                FromConstellation(StorageEventMsg(..)) => panic!("should have handled SorageEventMsg already"),
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
@@ -982,6 +987,20 @@ impl ScriptTask {
         window.flush_layout();
     }
 
+    fn handle_storage_event_msg(&self, pipeline_id: PipelineId) {
+        println!("in handle storage event");
+        let page = get_page(&*self.page.borrow(), pipeline_id);
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
+        let event = StorageEvent::new(global::Window(*window), "storage".to_string(), true, true, Some(Some("".to_string())),
+                                           Some(Some("".to_string())),Some(Some("".to_string())),
+                                          None).root();
+
+        let event = EventCast::from_ref(*event);
+        let _ = target.DispatchEvent(event);
+    }
+
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
@@ -1059,7 +1078,7 @@ impl ScriptTask {
     }
 
     fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
-        debug!("ClickEvent: clicked at {}", point);
+        println!("ClickEvent: clicked at {}", point);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.hit_test(&point) {
             Some(node_address) => {

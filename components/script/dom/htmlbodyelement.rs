@@ -56,6 +56,16 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
         let win = window_from_node(self).root();
         win.SetOnunload(listener)
     }
+
+    fn GetOnstorage(self) -> Option<EventHandlerNonNull> {
+        let win = window_from_node(self).root();
+        win.GetOnstorage()
+    }
+
+    fn SetOnstorage(self, listener: Option<EventHandlerNonNull>) {
+        let win = window_from_node(self).root();
+        win.SetOnstorage(listener)
+    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
